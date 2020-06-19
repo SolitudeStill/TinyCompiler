@@ -1,0 +1,16 @@
+rd x _ _
+lt 0 x t1
+if_f t1 L1 _
+lab L2 _ _
+sub x 1 t2
+asn t2 fact _
+mul fact x t3
+asn t3 fact _
+sub x 1 t4
+asn t4 x _
+eq x 0 t5
+if_f t5 L2 _
+wri fact _ _
+lab L1 _ _
+halt _ _ _
+$

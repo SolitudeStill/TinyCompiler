@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include"LexFileLoader.h"
 #include"Automaton.h"
 #include"GrammarFileReader.h"
@@ -36,6 +37,7 @@ hscp::Automaton getAutos() {
 
 	return std::move(at);
 }
+
 int main(int argc, char** argv) {
 	string file = "Data\\source.txt";
 	//if (argc == 2)
@@ -66,6 +68,11 @@ int main(int argc, char** argv) {
 	auto ast = hscp::SematicProcesser::AnalyzeToAST(sematic, atree, symbol_table);
 	atree.Destroy(); // dertroy analyze tree
 	hscp::PrintAST(ast);
-	genIR medCode (ast);//生成中间代码
+	freopen("Data\\data_target_code.txt", "w", stdout);
+	genIR::genIR(ast);//生成中间代码
+	printf("$\n");
+	freopen("con", "w", stdout);
+	printf("1.�����������target_code.exe\n");
+	system("pause");
 	return 0;
 }

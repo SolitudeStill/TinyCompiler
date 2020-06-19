@@ -11,16 +11,17 @@
 #include <queue>
 #include <utility>
 #include <iomanip>
-#include "SematicProcesser.h"
 using namespace std;
 
+//四元式
 struct Quad
 {
-	string op;
-	string addr1;
-	string addr2;
-	string addr3;
+	string op;//操作符
+	string addr1;//地址码1
+	string addr2;//地址码2
+	string addr3;//结果
 
+	//四元式地址码默认为"_"
 	Quad(string a, string b="_", string c="_", string d="_")
 	{
 		op = a;
@@ -29,7 +30,7 @@ struct Quad
 		addr3 = d;
 	}
 };
-
+//判断操作符是不是运算符号
 bool isOP(string op)
 {
 	if (op == "+" || op == "-" || op == "*")
@@ -37,6 +38,7 @@ bool isOP(string op)
 	else
 		return false;
 }
+//判断操作符是不是比较符号
 bool isComp(string op)
 {
 	if (op == "<" || op == "=" || op == ">")
@@ -44,19 +46,21 @@ bool isComp(string op)
 	else
 		return false;
 }
+//获取四元式的类
 class genIR
 {
 private:
-	hscp::AST ast;
-	vector<Quad>quads;
-	int tcount = 1;
-	int lcount = 1;
+	hscp::AST ast;//抽象语法树
+	vector<Quad>quads;//四元式组
+	int tcount = 1;//中间变量t个数
+	int lcount = 1;//label个数
 public:
 	genIR(hscp::AST a)
 	{
 		ast = a;
 		traverse();
 	}
+	//深度优先遍历语法树
 	void traverse()
 	{
 		parseTree(ast.root);
@@ -114,9 +118,10 @@ public:
 		else
 			parseTree(NULL);
 	}
-	//赋值语句
+	//赋值语句转四元式
 	void parseASN(hscp::ASTNode* node)
 	{
+		//有运算部分，生成中间变量
 		if (isOP(node->children[1]->op))
 		{
 			hscp::ASTNode* opNode = node->children[1];
@@ -137,17 +142,19 @@ public:
 			Quad t("asn", "t" + to_string(tc),node->children[0]->val);
 			quads.push_back(t);
 		}
+		//只有两个操作数，直接生成四元式
 		else
 		{
 			Quad temp("asn",node->children[0]->val,node->children[1]->val);
 			quads.push_back(temp);
 		}
 	}
-	//repeat语句
+	//repeat节点转四元式
 	void parseREPEAT(hscp::ASTNode* node)
 	{
 		for (hscp::ASTNode* c : node->children)
 		{
+			//条件判断
 			if (isComp(c->op))
 			{
 				hscp::ASTNode* comp = c;
@@ -172,6 +179,7 @@ public:
 				Quad t("if_f", "t" + to_string(tc), "L" + to_string(lcount - 1));
 				quads.push_back(t);
 			}
+			//生成孩子节点四元式
 			else
 				parseTree(c);
 		}
@@ -186,7 +194,7 @@ public:
 			PrintQuard();
 			return;
 		}
-			
+		//根据不同节点操作符生成四元式
 		if (node->op == "READ" || node->op == "WRITE")
 			parseWR(node);
 		else if (node->op == "IF")
@@ -202,12 +210,14 @@ public:
 		for(hscp::ASTNode*c:node->children)
 			parseTree(c);
 	}
+
+	//输出四元式
 	void PrintQuard()
 	{
 		cout << "四元式：" << endl;
 		for (Quad q : quads)
 		{
-			cout << "(" << q.op << "," << q.addr1 << "," << q.addr2 << ", " << q.addr3 <<")"<< endl;
+			cout << "(" << q.op << "," << q.addr1 << "," << q.addr2 << "," << q.addr3 <<")"<< endl;
 		}
 	}
 };
