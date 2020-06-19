@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
 	genIR::genIR(ast);//生成中间代码
 	printf("$\n");
 	freopen("con", "w", stdout);
-	printf("1.�����������target_code.exe\n");
+	printf("1.Please run the target_code.exe under folder TinyCompiler\n");
 	system("pause");
 	return 0;
 }
