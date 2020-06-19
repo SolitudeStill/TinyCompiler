@@ -9,7 +9,7 @@
 #include "SematicProcesser.h"
 #include "intermediate.h"
 using namespace std;
-// get an automaton
+// get an regex automaton
 hscp::Automaton getAutos() {
 #ifdef _DEBUG
 	constexpr auto route = "Data\\lex-define.txt";
@@ -18,14 +18,16 @@ hscp::Automaton getAutos() {
 #endif
 
 	hscp::Automaton at;
+	// load expressions
 	hscp::FileLoader(route, [](const auto& err) {}, [&at](const vector<hscp::token_define>& defs) {
-		for (const auto& d : defs) {
+		for (const auto& d : defs) { // for each expression
+			// convert to postfix expression then to NFA
 			auto nfa = hscp::Automaton::RegexPost2NFA(hscp::RegexProcesser::ProcessRegex(d.expr), d.id);
-
+			// to DFA
 			auto dfa = hscp::DFAConverter::Nfa2Dfa(nfa);
-
+			// minimize
 			auto mindfa = hscp::DFAminimizer(dfa);
-
+			// merge automatons to one big automaton
 			at = hscp::Automaton::Merge(at, mindfa);
 		}
 		});
@@ -39,19 +41,22 @@ int main(int argc, char** argv) {
 	//if (argc == 2)
 	//	file = argv[1]; // source file from parameter
 	//else return 0;
+
 	auto at = getAutos();
+	// init matcher
 	hscp::Matcher mc(at);
+	// begin match
 	auto tokens = mc.ReadFile(file);
 
+	// load grammar
 	hscp::GrammarLoader ld;
-	ld.Print();
+	//ld.Print();
 	ld.EnableLR(); // in GrammarFileReader.h , there's a constant identifies the start symbol for grammar
-	ld.Print();
+	//ld.Print();
 	auto lrat = hscp::LR1Automaton::Build(ld);
-	//lrat.MergeLALR1();
+	
 	auto t = lrat.LR1Table();
-	//vector<hscp::Token> tokens = { {"","id","a",0,1,1},{"","=","=",0,1,2},{"","*","*",0,1,3},{"","c","*",0,1,4},{"","d","6",0,1,5},{"","e","",0,1,6},{"","#","#",0,1,6} };
-	//vector<hscp::Token> tokens = { {"","id","a",0,1,1},{"","+","=",0,1,2},{"","id","*",0,1,3},{"","*","id",0,1,4},{"","(","id",0,1,5},{"","id","id",0,1,6},{"",")","id",0,1,7},{"","#","#",0,1,8} };
+	
 	hscp::Analyzer ana(lrat, t, tokens);
 	ana.PrintErrors();
 
@@ -59,7 +64,7 @@ int main(int argc, char** argv) {
 	std::set<std::string> symbol_table;
 	hscp::SematicLoader sematic;
 	auto ast = hscp::SematicProcesser::AnalyzeToAST(sematic, atree, symbol_table);
-	atree.Destroy();
+	atree.Destroy(); // dertroy analyze tree
 	hscp::PrintAST(ast);
 	genIR medCode (ast);//生成中间代码
 	return 0;

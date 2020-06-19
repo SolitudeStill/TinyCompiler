@@ -2,8 +2,7 @@
 
 
 #include"LRAutos.h"
-#include"LexMatcher.h" // include files over projects
-
+#include"LexMatcher.h"
 namespace {
 	void PrintStack(const std::deque<hscp::Token>& st) {
 
@@ -15,11 +14,11 @@ namespace {
 }
 namespace hscp {
 	
-	// abstract syntax tree node
+	// analyze tree node
 	struct AnalyzeTreeNode
 	{
 		Token token;
-		std::string symbol;
+		std::string symbol; // syntax symbol
 		std::list<AnalyzeTreeNode*> children;
 
 		void Destroy() {
@@ -34,7 +33,7 @@ namespace hscp {
 			
 		}
 	};
-	// abstract syntax tree
+	// analyze tree
 	struct AnalyzeTree
 	{
 		AnalyzeTreeNode* root;
@@ -100,38 +99,40 @@ namespace hscp {
 				}
 			}
 		}*/
+
+		// analyze and gete analyze tree
 		Analyzer(const LR1Automaton& at, const std::map<TState*, std::map<std::string, LROperation<TState>>>& table, const std::vector<Token>& tokenstream) :table(table), productions(at.productions), tokenstream(tokenstream) {
 			std::deque<Token> symbol_stack;
 			std::deque<TState*> state;
 			std::deque<AnalyzeTreeNode*> syntax;
 
-			state.push_back(at.states[0].Obj());
+			state.push_back(at.states[0].Obj()); // push start state
 			AnalyzeTreeNode* snode = nullptr;
-			for (auto i = tokenstream.begin(); i != tokenstream.end();) {
+			for (auto i = tokenstream.begin(); i != tokenstream.end();) { // read token
 				auto it = find(state.back()->trans.begin(), state.back()->trans.end(), (void*)0);
 				int pn;
-				if (table.at(state.back()).find('^' + i->is) == table.at(state.back()).end()) {
+				if (table.at(state.back()).find('^' + i->is) == table.at(state.back()).end()) { // cannot move, ignore this token
 					errors.push_back(*i);
 					i++;
 					continue;
 				}
-				switch (table.at(state.back()).at('^' + i->is).OpType)
+				switch (table.at(state.back()).at('^' + i->is).OpType) // can move
 				{
 				case LROperation<TState>::ACC:
-					tree.root = syntax.back();
+					tree.root = syntax.back(); // accept, move the tree
 					return;
-				case LROperation<TState>::S:
+				case LROperation<TState>::S: // shift to state
 					state.push_back(table.at(state.back()).at('^' + i->is).sid);
 					symbol_stack.push_back(*i);
 					syntax.push_back(new AnalyzeTreeNode{ *i, i->is, {} });
 					++i;
 					PrintStack(symbol_stack);
 					break;
-				case LROperation<TState>::R:
-					pn = table.at(state.back()).at('^' + i->is).pid;
-					snode = new AnalyzeTreeNode{ {},productions[pn].first,{} };
+				case LROperation<TState>::R: // reduce
+					pn = table.at(state.back()).at('^' + i->is).pid; // [actually GOTO is here]
+					snode = new AnalyzeTreeNode{ {},productions[pn].first,{} }; // this parent node
 					for (int n = 0; n < productions[pn].second.size(); n++) {
-						snode->children.push_front(syntax.back());
+						snode->children.push_front(syntax.back()); // add children node
 						syntax.pop_back();
 						symbol_stack.pop_back();
 						state.pop_back();
@@ -142,13 +143,13 @@ namespace hscp {
 					syntax.push_back(snode);
 					PrintStack(symbol_stack);
 					break;
-				case LROperation<TState>::N:
+				case LROperation<TState>::N: // won't reach this
 				default:
 					break;
 				}
 			}
 
-			tree.root = syntax.back();
+			tree.root = syntax.back(); // won't be executed in normal case
 		}
 		std::vector<Token>& GetErrors() {
 			return errors;

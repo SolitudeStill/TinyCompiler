@@ -10,7 +10,7 @@
 
 #include"GrammarFileReader.h"
 #include"LL1Preprocess.h"
-#include"C:\Users\Miracle\Source\Repos\CompilePrinciple\Automaton\Vlpp.h" // include files over projects
+#include"Vlpp.h"
 
 namespace hscp {
 	struct LRState;
@@ -24,10 +24,6 @@ namespace hscp {
 		} OpType;
 		TState* sid;
 		int pid;
-
-		/*LROperation(type t, TState* state_ptr, int prod_id): OpType(t),sid(state_ptr),pid(prod_id) {
-
-		}*/
 	};
 
 	struct LRState
@@ -297,9 +293,9 @@ namespace hscp {
 	struct LR1Transition;
 	struct LR1State
 	{
-		std::set<std::pair<std::pair<std::string, std::list<std::string>>, std::set<std::string>>> projects;
-		std::set<std::pair<std::pair<std::string, std::list<std::string>>, std::set<std::string>>> start;
-		std::set<std::pair<std::pair<std::string, std::list<std::string>>, std::set<std::string>>> closure;
+		std::set<std::pair<std::pair<std::string, std::list<std::string>>, std::set<std::string>>> projects; // all project
+		std::set<std::pair<std::pair<std::string, std::list<std::string>>, std::set<std::string>>> start; // start project
+		std::set<std::pair<std::pair<std::string, std::list<std::string>>, std::set<std::string>>> closure; // closure project
 
 		std::vector<LR1Transition*> trans;
 	};
@@ -311,7 +307,7 @@ namespace hscp {
 	};
 	class LR1Automaton {
 		template<typename TState>
-		friend class Analyzer;
+		friend class Analyzer; // allow analyzer access to private field
 	private:
 		std::vector<vl::Ptr<LR1State>> states;
 		std::vector<vl::Ptr<LR1Transition>> transitions;
@@ -321,21 +317,21 @@ namespace hscp {
 		std::map<std::string, std::set<std::string>> firstset;
 		GrammarLoader& grammarloader;
 
-
+		// make new state
 		LR1State* NewState(const std::set<std::pair<std::pair<std::string, std::list<std::string>>, std::set<std::string>>>& prods) {
 			std::set<std::pair<std::pair<std::string, std::list<std::string>>, std::set<std::string>>> closed;
-			for (const auto& p : prods) {
-				ProdClosure(p, closed);
-				//std::copy(ns.begin(), ns.end(), std::inserter(closed, closed.begin()));
+			for (const auto& p : prods) { // set closure
+				ProdClosure(p, closed); 
 			}
 
 			LR1State* t = new LR1State{ {}, prods, closed,{} };
 			t->projects = prods;
-			std::copy(closed.begin(), closed.end(), std::inserter(t->projects, t->projects.begin()));
+			std::copy(closed.begin(), closed.end(), std::inserter(t->projects, t->projects.begin())); // merge two kinds of projects
 
 			states.push_back(t);
 			return t;
 		}
+		// make new transition
 		LR1Transition* NewTransition(LR1State* from, LR1State* to, std::string symbol) {
 			LR1Transition* t = new LR1Transition{ symbol,from,to };
 			from->trans.push_back(t);
@@ -389,10 +385,11 @@ namespace hscp {
 
 			return;
 		}
+		// get next state available
 		std::set<std::pair<std::string, std::pair<std::pair<std::string, std::list<std::string>>, std::set<std::string>>>> getNext(LR1State* state) {
 			std::set<std::pair<std::string, std::pair<std::pair<std::string, std::list<std::string>>, std::set<std::string>>>> ns;
 			for (const auto& i : state->projects) {
-				auto it = std::find(i.first.second.begin(), i.first.second.end(), ".");
+				auto it = std::find(i.first.second.begin(), i.first.second.end(), "."); // find nonterminal can start
 				if (it == i.first.second.end() || (++it) == i.first.second.end()) {
 					continue;
 				}
@@ -403,44 +400,49 @@ namespace hscp {
 
 			return std::move(ns);
 		}
-		void moveNexts(LR1State* from) {
-			auto nexts = getNext(from);
-			if (nexts.size() == 0) return;
-			auto cur = nexts.begin()->first;
-			std::vector<std::pair<std::pair<std::string, std::list<std::string>>, std::set<std::string>>> ps;
-			for (const auto& n : nexts) {
-				if (cur != n.first) {
 
-					for (auto& p : ps) {
+		// get all next state and move to them
+		void moveNexts(LR1State* from) {
+			// get target states
+			auto nexts = getNext(from);
+			
+			if (nexts.size() == 0) return; // no next
+
+			auto cur = nexts.begin()->first; // current pointer
+			std::vector<std::pair<std::pair<std::string, std::list<std::string>>, std::set<std::string>>> ps;
+			for (const auto& n : nexts) { // each next state
+				if (cur != n.first) { 
+					// state with same starter ends, can process
+
+					for (auto& p : ps) { // skip one symbol
 						auto it = find(p.first.second.begin(), p.first.second.end(), ".");
 						auto i = it;
 						it++; it++;
 						p.first.second.erase(i);
 						p.first.second.insert(it, ".");
 					}
-					std::set<std::pair<std::pair<std::string, std::list<std::string>>, std::set<std::string>>> ts;
+					std::set<std::pair<std::pair<std::string, std::list<std::string>>, std::set<std::string>>> ts; // start project of new state
 					std::copy(ps.begin(), ps.end(), std::inserter(ts, ts.begin()));
 					std::set<std::pair<std::pair<std::string, std::list<std::string>>, std::set<std::string>>> closed;
-					for (const auto& p : ts) {
+					for (const auto& p : ts) { // get closure
 						ProdClosure(p, closed);
-						//std::copy(ns.begin(), ns.end(), std::inserter(closed, closed.begin()));
 					}
-					auto it = std::find_if(states.begin(), states.end(), [ts, closed](auto e) { return e->start == ts && e->closure == closed; });
+					auto it = std::find_if(states.begin(), states.end(), [ts, closed](auto e) { return e->start == ts && e->closure == closed; }); // find if the state has appeared
 					LR1State* to;
-					if (it == states.end()) {
+					if (it == states.end()) { // is new
 						to = NewState(ts);
-						moveNexts(to);
+						moveNexts(to); // do the new state
 					}
-					else to = it->Obj();
+					else to = it->Obj(); // is old
 					NewTransition(from, to, cur);
 
-					cur = n.first;
-					ps.clear();
+					cur = n.first; // update current
+					ps.clear(); // finish process
 				}
 
-				ps.push_back(n.second);
+				ps.push_back(n.second); // add a production
 			}
-			if (ps.size() > 0) {
+			if (ps.size() > 0) { // process left productions
 				for (auto& p : ps) {
 					auto it = find(p.first.second.begin(), p.first.second.end(), ".");
 					auto i = it;
@@ -453,7 +455,6 @@ namespace hscp {
 				std::set<std::pair<std::pair<std::string, std::list<std::string>>, std::set<std::string>>> closed;
 				for (const auto& p : ts) {
 					ProdClosure(p, closed);
-					//std::copy(ns.begin(), ns.end(), std::inserter(closed, closed.begin()));
 				}
 				auto it = std::find_if(states.begin(), states.end(), [ts, closed](auto e) { return e->start == ts && e->closure == closed; });
 				LR1State* to;
@@ -467,25 +468,27 @@ namespace hscp {
 
 		}
 		LR1Automaton(GrammarLoader& ld) :grammarloader(ld) {
+			// get first set
 			firstset = GetFirst(ld);
 		}
 	public:
+		// build LR1 automaton
 		static LR1Automaton Build(GrammarLoader& ld) {
 			LR1Automaton at(ld);
-			at.terminals.insert("^#");
+			at.terminals.insert("^#"); // add implicit delimiter
 			for (const auto& ps : ld.GetProductions()) {
-				for (const auto& p : ps.second) {
+				for (const auto& p : ps.second) { // refine production
 					at.productions.push_back(std::make_pair(ps.first, p));
 
 					for (const auto& s : p) {
-						if (s[0] == '^')
+						if (s[0] == '^') // get terminals
 							at.terminals.insert(s);
 					}
 				}
 			}
 
 			auto sp = at.productions[0];
-			sp.second.push_front(".");
+			sp.second.push_front("."); // start a project
 			auto nstate = at.NewState({ std::make_pair(sp, std::set<std::string>({"^#"})) });
 
 			at.moveNexts(nstate);
@@ -579,31 +582,32 @@ namespace hscp {
 				states.erase(r);
 			}*/
 		}
+		// generate analyze table
 		std::map<LR1State*, std::map<std::string, LROperation<LR1State>>> LR1Table() {
 			std::map<LR1State*, std::map<std::string, LROperation<LR1State>>> table;
 
-			for (const auto& s : states) {
-				for (const auto& t : s->trans) {
-					if (t->symbol[0] == '^') {
+			for (const auto& s : states) { // each state
+				for (const auto& t : s->trans) { // each transition
+					if (t->symbol[0] == '^') { // terminal - shift
 						table[s.Obj()][t->symbol] = LROperation<LR1State>{ LROperation<LR1State>::S,t->to,-1 };
 					}
-					else {
+					else { // nonterminal
 						table[s.Obj()][t->symbol] = LROperation<LR1State>{ LROperation<LR1State>::N,t->to,-1 };
 					}
 				}
 
 				for (const auto& p : s->projects) {
 
-					if (p.first.second.back() == ".") {
-						if (p.first.first[0] == '$') {
+					if (p.first.second.back() == ".") { // project finished
+						if (p.first.first[0] == '$') { // delimiter - accept
 							table[s.Obj()]["^#"] = LROperation<LR1State>{ LROperation<LR1State>::ACC,nullptr,-1 };
 							continue;
 						}
 
 						auto t = p.first.second;
-						t.pop_back();
+						t.pop_back(); // remove "."
 						int id = 0;
-						for (int i = 0; i < productions.size(); i++)
+						for (int i = 0; i < productions.size(); i++) // find production index
 						{
 							if (productions[i].second == t) {
 								id = i;
@@ -611,7 +615,7 @@ namespace hscp {
 							}
 						}
 
-						for (const auto& t : p.second) {
+						for (const auto& t : p.second) { // each look ahead symbol - reduce
 							table[s.Obj()][t] = LROperation<LR1State>{ LROperation<LR1State>::R,nullptr,id };
 						}
 					}

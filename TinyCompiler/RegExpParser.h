@@ -46,22 +46,19 @@ namespace hscp {
 
 	class RegexProcesser {
 	private:
-		// referrence to loaded file
-		//const FileLoader& fl;
-		// automaton
-		//Automaton nfa;
+		
 		// process escaped chars
 		static std::vector<regextok> escapeChar(unsigned char ch) {
 			std::vector<regextok> toks;
 			switch (ch)
 			{
-			case 'd':
+			case 'd': // \d in common regex
 				toks = { '[','0','-','9',']' };
 				break;
-			case 'D':
+			case 'D': // \D in common regex
 				toks = { '[','^','0','-','9',']' };
 				break;
-			case 'f':
+			case 'f': // control symbol in ascii
 				toks = { '\f' };
 				break;
 			case 'n':
@@ -76,19 +73,19 @@ namespace hscp {
 			case 'v':
 				toks = { '\v' };
 				break;
-			case 's':
+			case 's': // \s in common regex
 				toks = { '[',' ','\f','\n','\r','\t','\v',']' };
 				break;
-			case 'S':
+			case 'S': // \S in common regex
 				toks = { '[','^',' ','\f','\n','\r','\t','\v',']' };
 				break;
-			case 'w':
+			case 'w': // \w in common regex
 				toks = { '[','A','-','Z','a','-','z','0','-','9','_',']' };
 				break;
-			case 'W':
+			case 'W': // \W in common regex
 				toks = { '[','^','A','-','Z','a','-','z','0','-','9','_',']' };
 				break;
-			default:
+			default: // escape regex char
 				toks.emplace_back(ch, true);
 				break;
 			}
@@ -98,14 +95,14 @@ namespace hscp {
 		static std::vector<regextok> tokenize(const std::string& regex) {
 			std::vector<regextok> toks;
 			std::vector<regextok> rangetoks;
-			//bool isEsc = false;
-			for (auto i = regex.begin(); i != regex.end(); ++i) {
-				if (*i == '\\') {
+			
+			for (auto i = regex.begin(); i != regex.end(); ++i) { // for each character
+				if (*i == '\\') { // is escape char
 					auto ts = escapeChar(*(i + 1));
 					std::move(ts.begin(), ts.end(), back_inserter(toks));
 					++i;
 				}
-				else if (*i == '.') {
+				else if (*i == '.') { // is any char
 					std::vector<regextok> ts = { '[','^',']' };
 					std::move(ts.begin(), ts.end(), back_inserter(toks));
 				}
@@ -113,26 +110,29 @@ namespace hscp {
 					toks.emplace_back(*i);
 			}
 
-			bool rg_begin = false;
-			bool isfirst = true;
-			bool negated = false;
-			std::bitset<256> charset;
+			// process range syntax [...]
+			bool rg_begin = false; // begin range flag
+			bool isfirst = true; // first char flag(char set process)
+			bool negated = false; // negative range flag
+			std::bitset<256> charset; // set of ascii
 			for (auto i = toks.begin(); i != toks.end(); ++i) {
 				if (!rg_begin && *i == '[') { // range begin
 					rg_begin = true;
-					if (*(i + 1) == '^') {
+					if (*(i + 1) == '^') { // negative range
 						negated = true;
 						++i;
 					}
-					rangetoks.emplace_back('(');
+					rangetoks.emplace_back('('); // range begin symbol
 				}
 				else if (rg_begin && *i == ']') { // range end
 					rg_begin = false;
 					isfirst = true;
-					if (negated) charset.flip();
+					// process last closed range
+					if (negated) charset.flip(); // filp set 
 
 					for (int i = 1; i < 256; i++) {
-						if (charset[i]) {
+						if (charset[i]) { // find char contained
+							// continuous sequence merge
 							unsigned char from = i;
 							unsigned char to = i;
 							for (; i < 256 && charset[i]; i++)
@@ -140,25 +140,25 @@ namespace hscp {
 							i--;
 
 							if (isfirst) isfirst = false;
-							else { rangetoks.emplace_back('|'); }
+							else { rangetoks.emplace_back('|'); } // a range may contain many sub-range
 
 							rangetoks.emplace_back(from, to);
 						}
 					}
 					charset.reset();
-					rangetoks.emplace_back(')');
+					rangetoks.emplace_back(')'); // range end symbol
 				}
 				else { // other character
 					if (rg_begin) { // in a range
 						if (*(i + 1) == '-') { // has a connector
-							for (int s = *i; s <= *(i + 2); s++) {
+							for (int s = *i; s <= *(i + 2); s++) { // contain sub-range
 								charset.set(s);
 							}
 							++i; ++i;
 						}
-						else charset.set((unsigned char)*i);
+						else charset.set((unsigned char)*i);  // contain seperated char
 					}
-					else rangetoks.emplace_back(*i);
+					else rangetoks.emplace_back(*i); // common char
 				}
 			}
 
@@ -182,7 +182,7 @@ namespace hscp {
 				auto prio = priority.at(op); // of new optr
 				while (!ops.empty())
 				{
-					top = ops.top(); ops.pop();
+					top = ops.top(); ops.pop(); // get last operator
 
 					if (priority.at(top) >= prio) // lower
 						res.push_back(top); // can calculate
@@ -196,24 +196,24 @@ namespace hscp {
 			};
 			bool last_char = false; // shows if the last token is character (not optr), closure is regarded as character
 			for (auto i = regex.begin(); i != regex.end(); ++i) {
-				if ((*i) == '*' || (*i) == '+' || (*i) == '?') {
+				if ((*i) == '*' || (*i) == '+' || (*i) == '?') { // closure
 					last_char = true;
 					pushOp(*i);
 					continue;
 				}
-				if ((*i) == '|') {
+				if ((*i) == '|') { // or
 					last_char = false;
 					pushOp(*i);
 					continue;
 				}
-				if ((*i) == '(') {
+				if ((*i) == '(') { // bracket
 					if (last_char)
-						pushOp('&');
+						pushOp('&'); // implicit concat operator
 					ops.push(*i);
 					last_char = false;
 					continue;
 				}
-				if ((*i) == ')') {
+				if ((*i) == ')') { // close bracket
 					unsigned char op = 0;
 					while (!ops.empty()) // calculate all optr and find match
 					{
@@ -229,7 +229,7 @@ namespace hscp {
 					continue;
 				}
 				if (last_char) {
-					pushOp('&'); // add implict connection symbol
+					pushOp('&'); // add implict concat symbol
 				}
 				res.push_back(*i);
 				last_char = true;
@@ -247,54 +247,9 @@ namespace hscp {
 		}
 
 	public:
+		// process expression to regex token stream (post fix)
 		static std::vector<regextok> ProcessRegex(const std::string& regex) {
 			return toPost(tokenize(regex));
 		}
-		//RegexReader(const FileLoader& loader) :fl(loader) {
-		//	//Automaton nfa = Automaton();
-		//	//for (const auto& l : fl.LexTokens()) { // for each expression generate an automaton and merge to one
-		//	//	Automaton t = Automaton::RegexPost2NFA(toPost(tokenize(l.expr)), l.id);
-		//	//	std::cout << l.expr << std::endl;
-		//	//	t.print();
-		//	//	nfa = Automaton::Merge(nfa, t);
-		//	//}
-		//	//nfa.print();
-
-		//	//this->nfa = std::move(nfa);
-
-		//	/*this->nfa = Automaton::RegexPost2NFA(toPost(tokenize("[0-9][^a-c]")), "test");
-		//	this->nfa.print();*/
-		//}
-		/*const Automaton& Export() {
-			return this->nfa;
-		}*/
-
 	};
-
-
-	class Expression {
-	public:
-		bool optional = false;
-		bool multiple = false;
-		enum ExpType
-		{
-			Selection, Set, Group
-		} type;
-		
-		std::array<vl::Ptr<Expression>, 2> selection;
-		CharRange range;
-		std::vector<vl::Ptr<Expression>> sequence;
-		
-		Expression(ExpType type) :type(type), selection({}), range(0), sequence({}) {}
-	};
-	Expression* createExpression(Expression::ExpType type) {
-		return new Expression(type);
-	}
-	
-	Expression parse(const char* regex);
-	int parseFragment(const char* regex, int offset, int length, Expression* into);
-	int parseSelection(const char* regex, int offset, int length, Expression* into);
-	int parseSet(const char* regex, int offset, int length, Expression* into);
-	int parseGroup(const char* regex, int offset, int length, Expression* into);
-	int parseEscaped(const char* regex, int offset, int length, Expression* into);
 }

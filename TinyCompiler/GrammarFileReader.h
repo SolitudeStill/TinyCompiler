@@ -34,28 +34,28 @@ namespace hscp {
 		void load() {
 			std::string line;
 
-			while (std::getline(fin, line)) {
+			while (std::getline(fin, line)) { // get line
 				std::stringstream ss(line);
 				std::string n, p;
-				std::getline(ss, n, '-');
+				std::getline(ss, n, '-'); // get non-terminal
 				ss.get();
 				ss >> std::ws;
 
 				std::list<std::string> ps;
-				while (ss >> p) {
+				while (ss >> p) { // read a symbol divided by space
 					if (p != "|")
 					{
-						if (p[0] == '^') {
+						if (p[0] == '^') { // terminal
 							terminals.insert(p);
 						}
-						ps.push_back(p);
+						ps.push_back(p); // add a production symbol
 					}
 					else {
-						productions[n].emplace(ps);
+						productions[n].emplace(ps); // another production starts with same symbol
 						ps.clear();
 					}
 				}
-				productions[n].emplace(ps);
+				productions[n].emplace(ps); // production left
 				ps.clear();
 			}
 
@@ -90,7 +90,7 @@ namespace hscp {
 			if (!std::filesystem::exists(route)) {
 				std::cout << "Grammar Definations not Found.\n";
 			}
-			fin.open(route, std::ios::in | std::ios::_Nocreate);
+			fin.open(route, std::ios::in | std::ios::_Nocreate); // open file
 
 			load();
 			ErrorCheck();
@@ -114,11 +114,11 @@ namespace hscp {
 			}
 		}
 
-		//LR preprocess
+		//LR preprocess add start symbol
 		void EnableLR() {
 			productions[std::string("$") + GRAMMAR_START_SYMBOL] = { {GRAMMAR_START_SYMBOL} };
 		}
-
+		// return production
 		decltype(productions)& GetProductions() {
 			return productions;
 		}

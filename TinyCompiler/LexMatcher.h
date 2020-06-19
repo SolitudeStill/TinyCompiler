@@ -23,7 +23,7 @@ namespace hscp {
 			decltype(it_t) last_match;
 			int tl = -1, tc = -1;
 
-			while (ist.get(ch)) {
+			while (ist.get(ch)) { // read char
 
 				if (ch == '\n' || ch == '\r') { // count lines and column
 					line++;
@@ -31,13 +31,13 @@ namespace hscp {
 				}
 				else column++;
 
-				if ((it_t = find_if(current->trans.begin(), current->trans.end(), [ch](transition* t) {return t->input == ch; })) != current->trans.end()) {
+				if ((it_t = find_if(current->trans.begin(), current->trans.end(), [ch](transition* t) {return t->input == ch; })) != current->trans.end()) { // move
 					// if matched
 					if (tl == tc && tl == -1) { // record first character position
 						tl = line; tc = column;
 					}
 
-					word += ch;
+					word += ch; // append char
 					last_match = it_t;
 					current = (*it_t)->to; // move next
 				}
@@ -61,13 +61,13 @@ namespace hscp {
 			{
 				word += ch;
 			} while (ist.get(ch) && ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_'));
-			ist.putback(ch);
+			ist.putback(ch); // revert char
 			token = { "","Err",word,0,tl,tc };
 			return true;
 		}
 	public:
 		Automaton at;
-
+		// add automaton
 		Matcher(const Automaton& automaton) :at(automaton) {}
 		// read given file
 		std::vector<Token> ReadFile(const std::string& route) {
@@ -76,17 +76,17 @@ namespace hscp {
 				return {};
 			}
 			std::vector<Token> tokens;
-			std::ifstream fin(route);
+			std::ifstream fin(route); // open file
 			Token t;
 			int line = 1, column = 0;
-			while (fin.peek() != EOF)
+			while (fin.peek() != EOF) // until end of file
 			{
-				if (match(fin, t, line, column)) {
+				if (match(fin, t, line, column)) { // get a token
 					tokens.push_back(t);
 				}
 			}
 
-			tokens.push_back({ "","#","#",0,-1,-1 });
+			tokens.push_back({ "","#","#",0,-1,-1 }); // push delimiter
 			return tokens;
 		}
 	};

@@ -15,31 +15,32 @@ namespace hscp {
 		std::ifstream fin; // file stream
 		std::map<production, behavior> sematic;
 
+		// load sematic file
 		void load() {
 			std::string line;
-			while (std::getline(fin, line)) {
+			while (std::getline(fin, line)) { // get lines
 				std::string n, p, t, b;
 				std::list<std::string> ps;
 				std::vector<std::string> parameters;
-				{
+				{ // first line, production
 					std::stringstream ss(line);
 					std::getline(ss, n, '-');
 					ss.get();
 					ss >> std::ws;
 
 					
-					while (ss >> p) {
+					while (ss >> p) { // save production
 						ps.push_back(p);
 					}
 				}
 				std::getline(fin, line);
-				{
+				{ // second line, sematic rule
 					std::stringstream ss(line);
 					std::getline(ss, t, '=');
 					ss >> std::ws;
 
 					ss >> b;
-					while (ss >> p) {
+					while (ss >> p) { // save sematic item
 						parameters.push_back(p);
 					}
 					std::getline(fin, line); 
@@ -49,6 +50,7 @@ namespace hscp {
 			}
 		}
 	public:
+		// load on instantiated
 		SematicLoader() {
 #ifdef _DEBUG
 			constexpr auto route = "Data\\sematic.txt";
