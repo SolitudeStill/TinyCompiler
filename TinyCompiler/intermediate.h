@@ -214,10 +214,10 @@ public:
 	//输出四元式
 	void PrintQuard()
 	{
-		cout << "四元式：" << endl;
 		for (Quad q : quads)
 		{
-			cout << "(" << q.op << "," << q.addr1 << "," << q.addr2 << "," << q.addr3 <<")"<< endl;
+			if (q.addr1 == "")q.addr1 = "x";
+			cout << "" << q.op << " " << q.addr1 << " " << q.addr2 << " " << q.addr3 <<""<< endl;
 		}
 	}
 };
