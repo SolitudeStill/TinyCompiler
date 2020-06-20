@@ -15,7 +15,6 @@ namespace hscp {
 	struct transition;
 	// a state in automaton
 	struct state {
-		//std::vector<transition*> ins; // transition comes in
 		std::vector<transition*> trans; // transition functions
 		bool finalState; // is final
 		std::string is; // the lexical meaning which this function belongs to

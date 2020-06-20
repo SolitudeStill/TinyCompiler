@@ -62,6 +62,12 @@
     <ClInclude Include="SematicProcesser.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="IntermediateCode.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Optimizer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Data\grammar.txt">

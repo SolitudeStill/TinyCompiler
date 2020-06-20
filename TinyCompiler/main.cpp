@@ -8,7 +8,8 @@
 #include "LexMatcher.h"
 #include "SematicLoader.h"
 #include "SematicProcesser.h"
-#include "intermediate.h"
+#include "IntermediateCode.h"
+#include "Optimizer.h"
 using namespace std;
 // get an regex automaton
 hscp::Automaton getAutos() {
@@ -40,9 +41,9 @@ hscp::Automaton getAutos() {
 
 int main(int argc, char** argv) {
 	string file = "Data\\source.txt";
-	//if (argc == 2)
-	//	file = argv[1]; // source file from parameter
-	//else return 0;
+	if (argc == 2)
+		file = argv[1]; // source file from parameter
+	else return 0;
 
 	auto at = getAutos();
 	// init matcher
@@ -68,11 +69,9 @@ int main(int argc, char** argv) {
 	auto ast = hscp::SematicProcesser::AnalyzeToAST(sematic, atree, symbol_table);
 	atree.Destroy(); // dertroy analyze tree
 	hscp::PrintAST(ast);
-	freopen("Data\\data_target_code.txt", "w", stdout);
-	genIR::genIR(ast);//生成中间代码
-	printf("$\n");
-	freopen("con", "w", stdout);
-	printf("1.Please run the target_code.exe under folder TinyCompiler\n");
-	system("pause");
+	auto quad = hscp::IR::GenIR(ast);
+	hscp::PrintQuads(quad);
+	auto optimized = hscp::Optimizer::Optimize(quad);
+	hscp::PrintQuads(optimized);
 	return 0;
 }

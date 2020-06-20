@@ -25,12 +25,14 @@
     <ClInclude Include="Automaton.h" />
     <ClInclude Include="DFA.h" />
     <ClInclude Include="GrammarFileReader.h" />
+    <ClInclude Include="IntermediateCode.h" />
     <ClInclude Include="LexFileLoader.h" />
     <ClInclude Include="LexMatcher.h" />
     <ClInclude Include="LL1Analyzer.h" />
     <ClInclude Include="LL1Preprocess.h" />
     <ClInclude Include="LRAnalyzer.h" />
     <ClInclude Include="LRAutos.h" />
+    <ClInclude Include="Optimizer.h" />
     <ClInclude Include="RegExpParser.h" />
     <ClInclude Include="SematicProcesser.h" />
     <ClInclude Include="Vlpp.h" />
